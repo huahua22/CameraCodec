@@ -6,7 +6,8 @@ import android.media.MediaCodecInfo;
 import java.nio.ByteBuffer;
 
 /**
- * Converts from NV21 to YUV420 semi planar or planar.
+ * Create by xwr  on 2019/11/28.
+ * Describe:Converts from NV21 to YUV420 semi planar or planar.
  */
 public class NV21Convertor {
 

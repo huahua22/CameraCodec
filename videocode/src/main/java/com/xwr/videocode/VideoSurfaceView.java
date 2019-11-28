@@ -44,7 +44,6 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
   //定义摄像机
   private Camera camera;
 
-
   //构造函数
   public VideoSurfaceView(Context context, int cameraId, int width, int height, int framerate) {
     super(context);
@@ -59,29 +58,33 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
     initMediaCodec();
     mSurfaceHolder.addCallback(this);
     mSurfaceHolder.setFixedSize(getResources().getDisplayMetrics().widthPixels, getResources().getDisplayMetrics().heightPixels);
-
-
   }
-public void initSocket(String address){
-  mSendSocket = new SendSocket(address, 52100);
-  mSendSocket2 = new SendSocket(address, 52000);
-}
 
-//  public void initSocket() {
-//   // String address = NetWorkUtil.getIpAddressString();
-//    String address = "194.168.4.210";
-//    Log.d(TAG,address);
-//    mSendSocket = new SendSocket(address, 52100);
-//    mSendSocket2 = new SendSocket(address, 52000);
-//  }
+  public void initSocket(String address) {
+    mSendSocket = new SendSocket(address, 52100);
+    mSendSocket2 = new SendSocket(address, 52000);
+  }
 
-  public void startRecordVoice() {
+  //  public void initSocket() {
+  //   // String address = NetWorkUtil.getIpAddressString();
+  //    String address = "194.168.4.210";
+  //    Log.d(TAG,address);
+  //    mSendSocket = new SendSocket(address, 52100);
+  //    mSendSocket2 = new SendSocket(address, 52000);
+  //  }
+
+  /**
+   * 开始录音
+   */
+  private void startRecordVoice() {
     AudioManager.getInstance().startRecording(new AudioManager.OnAudioRecordListener() {
       @Override
       public void onVoiceRecord(byte[] data, int size) {
+
         if (mSendSocket2 == null) {
           Log.e(TAG, "please init socket");
         }
+        Log.d(TAG, "send voice");
         mSendSocket2.sendMessage(data);
       }
     });
@@ -103,6 +106,7 @@ public void initSocket(String address){
   public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
     //关闭摄像机
     stopCamera();
+    destroyCamera();
   }
 
 
@@ -114,10 +118,13 @@ public void initSocket(String address){
       camera.release();
       camera = null;
     }
-    mSendSocket2.close();
-    mSendSocket.close();
+    if (mSendSocket != null) {
+      mSendSocket.close();
+    }
+    if (mSendSocket2 != null) {
+      mSendSocket2.close();
+    }
     AudioManager.getInstance().stopRecording();
-
   }
 
   private void initMediaCodec() {
@@ -202,7 +209,7 @@ public void initSocket(String address){
 
 
   /**
-   * 停止预览
+   * 停止录制
    */
   public synchronized void stopRecord() {
     if (mCamera != null) {
@@ -210,11 +217,24 @@ public void initSocket(String address){
       mCamera.setPreviewCallbackWithBuffer(null);
       mCamera.stopPreview();
     }
+    AudioManager.getInstance().stopRecording();
   }
 
 
   /**
-   * 开启
+   * 关闭摄像
+   */
+  public void closeVideo() {
+    stopCamera();
+    destroyCamera();
+    mMediaCodec.stop();
+    mMediaCodec.release();
+    mMediaCodec = null;
+    AudioManager.getInstance().onDestroy();
+  }
+
+  /**
+   * 开启录制
    */
   public synchronized void startRecod() {
     if (mCamera != null) {

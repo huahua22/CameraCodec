@@ -33,8 +33,12 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 }
 task makeJar(type: Jar) {
+    //删除存在的jar包
+    delete 'build/lib/videocodec.jar'
+    //打包后jar包的名字
     archiveName = 'videocodec.jar'
     from (project.zipTree('build/intermediates/packaged-classes/debug/classes.jar'))
+    //打包后的路径
     destinationDir = file('build/lib')
 }
 makeJar.dependsOn(build)

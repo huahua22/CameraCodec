@@ -13,6 +13,7 @@ import java.util.List;
  * Describe:
  */
 public class CameraFormat {
+
   public static int[] determineMaximumSupportedFramerate(Camera.Parameters parameters) {
     int[] maxFps = new int[]{0, 0};
     List<int[]> supportedFpsRanges = parameters.getSupportedPreviewFpsRange();

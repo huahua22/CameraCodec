@@ -1,5 +1,8 @@
 package com.xwr.videocode;
-
+/**
+ * Create by xwr  on 2019/11/28.
+ * Describe:data type conversion util
+ */
 public class TypeConUtil {
   /**
    * int到byte[] 由高位到低位

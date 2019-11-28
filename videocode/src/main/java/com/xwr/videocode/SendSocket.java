@@ -6,7 +6,7 @@ import java.net.InetAddress;
 
 /**
  * Create by xwr on 2019/11/25
- * Describe:
+ * Describe:udp send socket
  */
 public class SendSocket {
   private DatagramSocket mSocket = null;

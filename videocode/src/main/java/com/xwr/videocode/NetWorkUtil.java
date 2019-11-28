@@ -8,7 +8,7 @@ import java.util.Enumeration;
 
 /**
  * Create by xwr on 2019/11/25
- * Describe:
+ * Describe:net util
  */
 public class NetWorkUtil {
 
