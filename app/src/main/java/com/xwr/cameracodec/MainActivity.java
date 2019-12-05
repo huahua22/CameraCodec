@@ -7,14 +7,16 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.RelativeLayout;
-import android.widget.Toast;
 
 import com.xwr.videocode.VideoSurfaceView;
+
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
   private static String TAG = "huahua";
@@ -23,8 +25,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
   VideoSurfaceView mVideoView;
   int mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
   RelativeLayout mRelativeLayout;
-  EditText mEditText;
+  //  EditText mEditText;
   private boolean isStart;
+  private DatagramSocket mSocket = null;
+  private InetAddress myAddress = null;
+  String s = "connect";
+  boolean isConnect = false;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -33,7 +39,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     requestPermission();
     btnStart = (Button) findViewById(R.id.btn_start);
     btnStop = findViewById(R.id.btn_stop);
-    mEditText = findViewById(R.id.address);
+    //    mEditText = findViewById(R.id.address);
     btnStart.setOnClickListener(this);
     btnStop.setOnClickListener(this);
     mRelativeLayout = findViewById(R.id.main);
@@ -42,23 +48,52 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
   }
 
+  private void sendCmd() {
+    try {
+      mSocket = new DatagramSocket();
+      myAddress = InetAddress.getByName("192.168.4.210");
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        while (!isConnect) {
+          byte[] data = s.getBytes();
+          DatagramPacket packet = new DatagramPacket(data, data.length, myAddress, 9000);
+          try {
+            mSocket.send(packet);
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+
+        }
+      }
+    }).start();
+  }
+
 
   @Override
   public void onClick(View v) {
     switch (v.getId()) {
       case R.id.btn_start:
-        if (mEditText.getText().toString().isEmpty()) {
-          Toast.makeText(this, "please input address", Toast.LENGTH_SHORT).show();
-        } else {
-          mVideoView.initSocket(mEditText.getText().toString());
-          Log.d(TAG, "click start btn");
-          mEditText.setVisibility(View.GONE);
-          mVideoView.startRecod();
-          isStart = true;
-        }
+        sendCmd();
+        mVideoView.initSocket("192.168.4.210");
+        mVideoView.startRecod();
+        isStart = true;
+        btnStart.setClickable(false);
+        //        if (mEditText.getText().toString().isEmpty()) {
+        //          Toast.makeText(this, "please input address", Toast.LENGTH_SHORT).show();
+        //        } else {
+        //          mVideoView.initSocket(mEditText.getText().toString());
+        //          Log.d(TAG, "click start btn");
+        //          mEditText.setVisibility(View.GONE);
+        //
+        //        }
         break;
       case R.id.btn_stop:
         mVideoView.stopRecord();
+        btnStart.setClickable(true);
         break;
 
     }

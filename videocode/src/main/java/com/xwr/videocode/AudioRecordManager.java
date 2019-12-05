@@ -1,15 +1,17 @@
 package com.xwr.videocode;
 
+import android.annotation.SuppressLint;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.util.Log;
+
 /**
  * Create by xwr  on 2019/11/28.
  * Describe:录音
  */
-public class AudioManager {
-  private static AudioManager instance;
+public class AudioRecordManager {
+  private static AudioRecordManager instance;
 
   boolean isRecording = false; //true表示正在录音
 
@@ -27,21 +29,31 @@ public class AudioManager {
   int count = 0;
   String path = FileUtil.getSDPath() + "/test.pcm";
 
-  private AudioManager() {
+
+  @SuppressLint("NewApi")
+  private AudioRecordManager() {
     //计算最小缓冲区
     bufferSize = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat);
     bufferSize = bufferSize > 320 ? 320 : bufferSize;//20ms
     Log.d(TAG, "bufferSize:" + bufferSize);
-    audioRecord = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, sampleRateInHz, channelConfig, audioFormat, bufferSize);
-    //audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleRateInHz, channelConfig, audioFormat, bufferSize);//创建AudioRecorder对象
+    //    audioRecord = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, sampleRateInHz, channelConfig, audioFormat, bufferSize);
+    audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleRateInHz, AudioFormat.CHANNEL_IN_MONO, audioFormat, bufferSize);//创建AudioRecorder对象
     FileUtil.createFile(path);
+
   }
 
-  public static AudioManager getInstance() {
+
+  @SuppressLint("NewApi")
+  public int getSessionId() {
+
+    return audioRecord.getAudioSessionId();
+  }
+
+  public static AudioRecordManager getInstance() {
     if (instance == null) {
-      synchronized (AudioManager.class) {
+      synchronized (AudioRecordManager.class) {
         if (instance == null) {
-          instance = new AudioManager();
+          instance = new AudioRecordManager();
         }
       }
     }
@@ -69,6 +81,7 @@ public class AudioManager {
           audioRecord.startRecording();//开始录音
           while (isRecording) {
             int bufferReadResult = audioRecord.read(buffer, 0, bufferSize);
+            FileUtil.save(buffer, 0, buffer.length, path, true);
             count++;
             if (getOnAudioRecordListener() != null) {
               getOnAudioRecordListener().onVoiceRecord(buffer, bufferReadResult);

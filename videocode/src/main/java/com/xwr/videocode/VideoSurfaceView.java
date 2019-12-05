@@ -27,7 +27,7 @@ import static com.xwr.videocode.TypeConUtil.intToByteArray;
  */
 @SuppressLint("NewApi")
 public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callback {
-  private static String TAG = "MyVideoView";
+  private static String TAG = "VideoSurfaceView";
   private SurfaceHolder mSurfaceHolder;
   NV21Convertor mConvertor;
   MediaCodec mMediaCodec;
@@ -36,6 +36,7 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
   private int mCameraId;
   private SendSocket mSendSocket;
   private SendSocket mSendSocket2;
+  private RecvSocket mRecvSocket;
   int width;
   int height;
   int framerate;
@@ -60,9 +61,11 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
     mSurfaceHolder.setFixedSize(getResources().getDisplayMetrics().widthPixels, getResources().getDisplayMetrics().heightPixels);
   }
 
+
   public void initSocket(String address) {
-    mSendSocket = new SendSocket(address, 52100);
-    mSendSocket2 = new SendSocket(address, 52000);
+    mSendSocket = new SendSocket(address, 52100);//视频流
+    mSendSocket2 = new SendSocket(address, 52000);//音频
+    mRecvSocket = new RecvSocket();
   }
 
   //  public void initSocket() {
@@ -77,10 +80,9 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
    * 开始录音
    */
   private void startRecordVoice() {
-    AudioManager.getInstance().startRecording(new AudioManager.OnAudioRecordListener() {
+    AudioRecordManager.getInstance().startRecording(new AudioRecordManager.OnAudioRecordListener() {
       @Override
       public void onVoiceRecord(byte[] data, int size) {
-
         if (mSendSocket2 == null) {
           Log.e(TAG, "please init socket");
         }
@@ -124,7 +126,10 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
     if (mSendSocket2 != null) {
       mSendSocket2.close();
     }
-    AudioManager.getInstance().stopRecording();
+    if (mRecvSocket != null) {
+      mRecvSocket.close();
+    }
+    AudioRecordManager.getInstance().stopRecording();
   }
 
   private void initMediaCodec() {
@@ -147,6 +152,7 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
         debugger.getEncoderColorFormat());
       mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
       mMediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+      //启动编码器
       mMediaCodec.start();
     } catch (IOException e) {
       e.printStackTrace();
@@ -217,7 +223,8 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
       mCamera.setPreviewCallbackWithBuffer(null);
       mCamera.stopPreview();
     }
-    AudioManager.getInstance().stopRecording();
+    AudioRecordManager.getInstance().stopRecording();
+    AudioTrackManager.getInstance().pausePlay();
   }
 
 
@@ -230,7 +237,8 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
     mMediaCodec.stop();
     mMediaCodec.release();
     mMediaCodec = null;
-    AudioManager.getInstance().onDestroy();
+    AudioRecordManager.getInstance().onDestroy();
+
   }
 
   /**
@@ -250,6 +258,12 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
       Log.d(TAG, "start fail");
     }
     startRecordVoice();
+    startAudioTrack();
+  }
+
+  private void startAudioTrack() {
+    mRecvSocket.recvMessge();
+
   }
 
   //定义Camera的回调方法
