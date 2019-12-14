@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
   EditText mEditText;
   private boolean isStart;
 
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -33,13 +34,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     requestPermission();
     btnStart = (Button) findViewById(R.id.btn_start);
     btnStop = findViewById(R.id.btn_stop);
-    mEditText = findViewById(R.id.address);
+    mEditText = findViewById(R.id.ip_address);
     btnStart.setOnClickListener(this);
     btnStop.setOnClickListener(this);
     mRelativeLayout = findViewById(R.id.main);
     mVideoView = new VideoSurfaceView(this, mCameraId, 640, 480, 10);
     mRelativeLayout.addView(mVideoView);
-
   }
 
 
@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
           Log.d(TAG, "click start btn");
           mEditText.setVisibility(View.GONE);
           mVideoView.startRecod();
+         //sendMessage();
           isStart = true;
         }
         break;
@@ -82,4 +83,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
     mVideoView.closeVideo();
   }
+
 }

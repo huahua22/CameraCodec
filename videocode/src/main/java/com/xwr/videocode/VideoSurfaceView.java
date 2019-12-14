@@ -35,7 +35,6 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
   private IVideoRecoderListener mIVideoRecoderListener;
   private int mCameraId;
   private SendSocket mSendSocket;
-  private SendSocket mSendSocket2;
   int width;
   int height;
   int framerate;
@@ -43,6 +42,8 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
   Context mContext;
   //定义摄像机
   private Camera camera;
+  private PcmUdpUtil mPcmUdpUtil;
+  private String dstAddress = null;
 
   //构造函数
   public VideoSurfaceView(Context context, int cameraId, int width, int height, int framerate) {
@@ -62,30 +63,21 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
 
   public void initSocket(String address) {
     mSendSocket = new SendSocket(address, 52100);
-    mSendSocket2 = new SendSocket(address, 52000);
+    dstAddress = address;
+    mPcmUdpUtil = PcmUdpUtil.getUdpBuild();
+
   }
 
-  //  public void initSocket() {
-  //   // String address = NetWorkUtil.getIpAddressString();
-  //    String address = "194.168.4.210";
-  //    Log.d(TAG,address);
-  //    mSendSocket = new SendSocket(address, 52100);
-  //    mSendSocket2 = new SendSocket(address, 52000);
-  //  }
 
   /**
    * 开始录音
    */
   private void startRecordVoice() {
-    AudioManager.getInstance().startRecording(new AudioManager.OnAudioRecordListener() {
+    AudioRecordManager.getInstance().startRecording(new AudioRecordManager.OnAudioRecordListener() {
       @Override
       public void onVoiceRecord(byte[] data, int size) {
+        mPcmUdpUtil.sendMessage(data, dstAddress);
 
-        if (mSendSocket2 == null) {
-          Log.e(TAG, "please init socket");
-        }
-        Log.d(TAG, "send voice");
-        mSendSocket2.sendMessage(data);
       }
     });
   }
@@ -121,10 +113,8 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
     if (mSendSocket != null) {
       mSendSocket.close();
     }
-    if (mSendSocket2 != null) {
-      mSendSocket2.close();
-    }
-    AudioManager.getInstance().stopRecording();
+    mPcmUdpUtil.stopUDPSocket();
+    AudioRecordManager.getInstance().stopRecording();
   }
 
   private void initMediaCodec() {
@@ -217,7 +207,7 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
       mCamera.setPreviewCallbackWithBuffer(null);
       mCamera.stopPreview();
     }
-    AudioManager.getInstance().stopRecording();
+    AudioRecordManager.getInstance().stopRecording();
   }
 
 
@@ -230,7 +220,7 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
     mMediaCodec.stop();
     mMediaCodec.release();
     mMediaCodec = null;
-    AudioManager.getInstance().onDestroy();
+    AudioRecordManager.getInstance().onDestroy();
   }
 
   /**
@@ -299,11 +289,12 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
               byte[] testdata = new byte[length.length + outData.length];
               System.arraycopy(length, 0, testdata, 0, length.length);
               System.arraycopy(outData, 0, testdata, length.length, outData.length);
-              //  mIVideoRecoderListener.onRecording(testdata);
+              // mIVideoRecoderListener.onRecording(testdata);
               if (mSendSocket == null) {
                 Log.e(TAG, "please init socket");
               }
               mSendSocket.sendMessage(testdata);
+              Thread.sleep(3);
               mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
               outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
             }
