@@ -54,7 +54,7 @@ public class FileUtil {
       sdDir = Environment.getExternalStorageDirectory();
     }
     return sdDir.toString();
-  }
+}
 
   public static void createFile(String fileName) {
     File file = new File(fileName);
