@@ -3,6 +3,7 @@ package com.xwr.videocode;
 import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
+import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.util.Log;
 
@@ -13,7 +14,7 @@ import android.util.Log;
 public class AudioTrackManager {
   private static AudioTrackManager instance;
   private AudioManager audioManager;
-  private static String TAG = "huahua";
+  private static String TAG = "AudioTrackManager";
   AudioTrack mAudioTrack = null;
 
   int bufferSize = 0;//最小缓冲区大小
@@ -57,10 +58,14 @@ public class AudioTrackManager {
   }
 
   public void stopPlay() {
-    if(mAudioTrack!=null){
-      mAudioTrack.stop();
+    if (mAudioTrack != null) {
+      if (mAudioTrack.getState() == AudioRecord.STATE_INITIALIZED) {//初始化成功
+        mAudioTrack.stop();//停止播放
+      }
+      if (mAudioTrack != null) {
+        mAudioTrack.release();//释放audioTrack资源
+      }
     }
-    mAudioTrack.release();
   }
 
   public void pausePlay() {

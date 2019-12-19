@@ -1,10 +1,9 @@
 package com.xwr.videocode;
 
-import android.util.Log;
-
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 
 /**
  * Create by xwr on 2019/11/25
@@ -29,18 +28,20 @@ public class SendSocket  {
   }
 
   public void sendMessage(final byte[] data) {
+    if(mSocket==null){
+      try {
+        mSocket = new DatagramSocket();
+      } catch (SocketException e) {
+        e.printStackTrace();
+      }
+    }
 
     new Thread(new Runnable() {
       @Override
       public void run() {
         try {
-          Log.d(TAG,"send bitmap0");
           DatagramPacket packet = new DatagramPacket(data, data.length, myAddress, port);
-          Log.d(TAG,"send bitmap1");
           mSocket.send(packet);
-          Log.d(TAG,"send bitmap2");
-//          mSocket.receive(packet);
-//          Log.d(TAG,"send bitmap3");
         } catch (Exception e) {
           e.printStackTrace();
         }

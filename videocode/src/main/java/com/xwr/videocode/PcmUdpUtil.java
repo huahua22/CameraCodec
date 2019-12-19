@@ -85,7 +85,8 @@ public class PcmUdpUtil {
         continue;
       }
       AudioTrackManager.getInstance().startPlay(receivePacket.getData());
-      Log.d(TAG,  " from " + receivePacket.getAddress().getHostAddress()+" length:"+receivePacket.getData().length);
+      udpReceiveCallback.OnParserComplete(receivePacket.getData());
+      //Log.d(TAG,  " from " + receivePacket.getAddress().getHostAddress()+" length:"+receivePacket.getData().length);
       //            每次接收完UDP数据后，重置长度。否则可能会导致下次收到数据包被截断。
       if (receivePacket != null) {
         receivePacket.setLength(BUFFER_LENGTH);
@@ -112,6 +113,7 @@ public class PcmUdpUtil {
    * 发送信息
    **/
   public void sendMessage(final byte[] data, final String address) {
+
     if (client == null) {
       startUDPSocket();
     }
@@ -126,7 +128,7 @@ public class PcmUdpUtil {
           e.printStackTrace();
         }
         try {
-          Thread.sleep(1);
+          Thread.sleep(3);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
@@ -152,7 +154,7 @@ public class PcmUdpUtil {
   }
 
   public interface OnUDPReceiveCallbackBlock {
-    void OnParserComplete(byte[] data);
+    void OnParserComplete(byte[] playdata);
   }
 
   public void setUdpReceiveCallback(OnUDPReceiveCallbackBlock callback) {

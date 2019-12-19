@@ -6,19 +6,31 @@ import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import com.xwr.speex.SpeexUtil;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
 import static com.xwr.videocode.CameraFormat.determineMaximumSupportedFramerate;
 import static com.xwr.videocode.CameraFormat.getDgree;
 import static com.xwr.videocode.TypeConUtil.intToByteArray;
+import static com.xwr.videocode.TypeConUtil.toShortArray;
+
+//import com.xwr.speex.SpeexUtil;
 
 
 /**
@@ -34,35 +46,56 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
   private Camera mCamera;
   private IVideoRecoderListener mIVideoRecoderListener;
   private int mCameraId;
-  private SendSocket mSendSocket;
   int width;
   int height;
-  int framerate;
+  int framerate = 10;
   int bitrate;
   Context mContext;
   //定义摄像机
   private Camera camera;
   private PcmUdpUtil mPcmUdpUtil;
+  private DatagramSocket mSocket = null;
   private String dstAddress = null;
+  private HandlerThread mHandlerThread;
+  Handler workHandler;
 
   //构造函数
-  public VideoSurfaceView(Context context, int cameraId, int width, int height, int framerate) {
+  public VideoSurfaceView(Context context, int cameraId, int width, int height) {
     super(context);
     //获取Holder
     mContext = context;
     mCameraId = cameraId;
     this.width = width;
     this.height = height;
-    this.framerate = framerate;
     Log.d(TAG, "camera:" + cameraId);
     mSurfaceHolder = getHolder();
     initMediaCodec();
     mSurfaceHolder.addCallback(this);
     mSurfaceHolder.setFixedSize(getResources().getDisplayMetrics().widthPixels, getResources().getDisplayMetrics().heightPixels);
+    mHandlerThread = new HandlerThread("handlerThread");
+    mHandlerThread.start();
+    workHandler = new Handler(mHandlerThread.getLooper()) {
+      @Override
+      public void handleMessage(Message msg) {
+        Log.d(TAG, "sendVideo thread:" + Thread.currentThread().getName());
+        super.handleMessage(msg);
+        byte[] data = (byte[]) msg.obj;
+        try {
+          DatagramPacket packet = new DatagramPacket(data, data.length, InetAddress.getByName(dstAddress), 52100);
+          mSocket.send(packet);
+        } catch (Exception e) {
+          e.printStackTrace();
+        }
+      }
+    };
   }
 
   public void initSocket(String address) {
-    mSendSocket = new SendSocket(address, 52100);
+    try {
+      mSocket = new DatagramSocket();
+    } catch (SocketException e) {
+      e.printStackTrace();
+    }
     dstAddress = address;
     mPcmUdpUtil = PcmUdpUtil.getUdpBuild();
 
@@ -73,11 +106,22 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
    * 开始录音
    */
   private void startRecordVoice() {
+    SpeexUtil.getInstance().init();
+    final short[] outdata = new short[320];
     AudioRecordManager.getInstance().startRecording(new AudioRecordManager.OnAudioRecordListener() {
       @Override
-      public void onVoiceRecord(byte[] data, int size) {
-        mPcmUdpUtil.sendMessage(data, dstAddress);
+      public void onVoiceRecord(final byte[] data, int size) {
+        mPcmUdpUtil.setUdpReceiveCallback(new PcmUdpUtil.OnUDPReceiveCallbackBlock() {
+          @Override
+          public void OnParserComplete(byte[] playdata) {
+            SpeexUtil.getInstance().echoCancellation(toShortArray(data), toShortArray(playdata), outdata);
+            Log.d("pcm", "length:" + outdata.length);
 
+          }
+
+        });
+
+        mPcmUdpUtil.sendMessage(data, dstAddress);
       }
     });
   }
@@ -109,9 +153,6 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
       camera.stopPreview();
       camera.release();
       camera = null;
-    }
-    if (mSendSocket != null) {
-      mSendSocket.close();
     }
     mPcmUdpUtil.stopUDPSocket();
     AudioRecordManager.getInstance().stopRecording();
@@ -207,6 +248,7 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
       mCamera.setPreviewCallbackWithBuffer(null);
       mCamera.stopPreview();
     }
+    AudioTrackManager.getInstance().pausePlay();
     AudioRecordManager.getInstance().stopRecording();
   }
 
@@ -220,6 +262,7 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
     mMediaCodec.stop();
     mMediaCodec.release();
     mMediaCodec = null;
+    mHandlerThread.quit();//退出消息循环
     AudioRecordManager.getInstance().onDestroy();
   }
 
@@ -289,12 +332,17 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
               byte[] testdata = new byte[length.length + outData.length];
               System.arraycopy(length, 0, testdata, 0, length.length);
               System.arraycopy(outData, 0, testdata, length.length, outData.length);
-              // mIVideoRecoderListener.onRecording(testdata);
-              if (mSendSocket == null) {
-                Log.e(TAG, "please init socket");
-              }
-              mSendSocket.sendMessage(testdata);
-              Thread.sleep(3);
+              Message message = new Message();
+              message.obj = testdata;
+              workHandler.sendMessageDelayed(message, 1);
+              // workHandler.sendMessage(message);
+              Log.d(TAG, "onPreviewCallback thread:" + Thread.currentThread().getName() + " data length:" + testdata.length);
+              //mIVideoRecoderListener.onRecording(testdata);
+              //              if (mSendSocket == null) {
+              //                Log.e(TAG, "please init socket");
+              //              }
+              //              mSendSocket.sendMessage(testdata);
+              //              Thread.sleep(3);
               mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
               outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 0);
             }
