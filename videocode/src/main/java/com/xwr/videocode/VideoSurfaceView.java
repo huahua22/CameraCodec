@@ -248,7 +248,7 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
       mCamera.setPreviewCallbackWithBuffer(null);
       mCamera.stopPreview();
     }
-    AudioTrackManager.getInstance().pausePlay();
+   // AudioTrackManager.getInstance().pausePlay();
     AudioRecordManager.getInstance().stopRecording();
   }
 
@@ -335,7 +335,7 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
               Message message = new Message();
               message.obj = testdata;
               workHandler.sendMessageDelayed(message, 1);
-              // workHandler.sendMessage(message);
+              //workHandler.sendMessage(message);
               Log.d(TAG, "onPreviewCallback thread:" + Thread.currentThread().getName() + " data length:" + testdata.length);
               //mIVideoRecoderListener.onRecording(testdata);
               //              if (mSendSocket == null) {
