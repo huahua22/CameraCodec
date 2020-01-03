@@ -46,8 +46,8 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
   private Camera mCamera;
   private IVideoRecoderListener mIVideoRecoderListener;
   private int mCameraId;
-  int width;
-  int height;
+  int width = 640;
+  int height = 480;
   int framerate = 10;
   int bitrate;
   Context mContext;
@@ -60,13 +60,11 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
   Handler workHandler;
 
   //构造函数
-  public VideoSurfaceView(Context context, int cameraId, int width, int height) {
+  public VideoSurfaceView(Context context, int cameraId) {
     super(context);
     //获取Holder
     mContext = context;
     mCameraId = cameraId;
-    this.width = width;
-    this.height = height;
     Log.d(TAG, "camera:" + cameraId);
     mSurfaceHolder = getHolder();
     initMediaCodec();
@@ -111,6 +109,7 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
     AudioRecordManager.getInstance().startRecording(new AudioRecordManager.OnAudioRecordListener() {
       @Override
       public void onVoiceRecord(final byte[] data, int size) {
+        mPcmUdpUtil.sendMessage(data, dstAddress);
         mPcmUdpUtil.setUdpReceiveCallback(new PcmUdpUtil.OnUDPReceiveCallbackBlock() {
           @Override
           public void OnParserComplete(byte[] playdata) {
@@ -120,8 +119,6 @@ public class VideoSurfaceView extends SurfaceView implements SurfaceHolder.Callb
           }
 
         });
-
-        mPcmUdpUtil.sendMessage(data, dstAddress);
       }
     });
   }
