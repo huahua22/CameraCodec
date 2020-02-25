@@ -1,27 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<RelativeLayout
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:app="http://schemas.android.com/apk/res-auto"
 	xmlns:tools="http://schemas.android.com/tools"
 	android:layout_width="match_parent"
-	android:orientation="vertical"
 	android:layout_height="match_parent"
-	tools:context=".TestActivity">
-<TextView
-	android:id="@+id/receive_textView"
-	android:layout_height="wrap_content"
-	android:layout_width="match_parent"/>
-	<TextView
-		android:id="@+id/send_textView"
-		android:layout_height="wrap_content"
-		android:layout_width="match_parent"/>
+	tools:context=".MainActivity">
+
+	<RelativeLayout
+		android:id="@+id/main"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"/>
+
 	<EditText
-		android:id="@+id/send_editText"
+		android:id="@+id/ip_address"
+		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:layout_width="wrap_content"/>
-	<Button
+		android:textColor="#ffffff"
+		android:layout_alignParentTop="true"
+		android:text="192.168.0.6"
+		android:hint="please input dest address"/>
+
+
+	<LinearLayout
+		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:layout_width="wrap_content"
-		android:onClick="sendMessage"
-		android:text="send"/>
-</LinearLayout>
+		android:layout_alignParentBottom="true"
+		android:layout_marginBottom="10dp"
+		android:gravity="center_horizontal">
+
+		<Button
+			android:id="@+id/btn_start"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="开始"/>
+
+		<Button
+			android:id="@+id/btn_stop"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_marginLeft="20dp"
+			android:text="停止"/>
+	</LinearLayout>
+
+</RelativeLayout>

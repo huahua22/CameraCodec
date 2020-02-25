@@ -1,72 +1,72 @@
 package com.xwr.cameracodec;
 
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
+import android.widget.RelativeLayout;
+import android.widget.Toast;
 
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+import com.xwr.videocode.VideoSurfaceView;
 
-public class TestActivity extends AppCompatActivity {
-  //private UDPSendVideo udpBuild;
-  private DatagramSocket mSocket = null;
-  private InetAddress myAddress = null;
-  String s = "connect";
-  boolean isConnect = false;
+public class TestActivity extends AppCompatActivity implements View.OnClickListener {
+  private static String TAG = "MainActivity";
+  Button btnStart;
+  Button btnStop;
+  VideoSurfaceView mVideoView;
+  int mCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
+  RelativeLayout mRelativeLayout;
+  EditText mEditText;
+  private boolean isStart;
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_test);
- //   udpBuild = UDPSendVideo.getUdpBuild();
-//    udpBuild.setUdpReceiveCallback(new UDPSendVideo.OnUDPReceiveCallbackBlock() {
-//      @Override
-//      public void OnParserComplete(DatagramPacket data) {
-//        String strReceive = new String(data.getData(), 0, data.getLength());
-//        SimpleDateFormat formatter = new SimpleDateFormat("yyyy年MM月dd日 HH:mm:ss");
-//        Date curDate =  new Date(System.currentTimeMillis());
-//        String str = formatter.format(curDate);
-//        //在真机上运行需要用handle回到主线程再更新UI，不然会崩。模拟器上不会
-//        TextView receive = findViewById(R.id.receive_textView);
-//        receive.append(str + ':' + strReceive + '\n');
-//      }
-//    });
-    sendCmd();
-  }
-  public void sendMessage(View view) {
-    EditText editText = findViewById(R.id.send_editText);
-    String message = editText.getText().toString();
-    //udpBuild.sendMessage(message);
+    btnStart = (Button) findViewById(R.id.btn_start);
+    btnStop = findViewById(R.id.btn_stop);
+    mEditText = findViewById(R.id.ip_address);
+    btnStart.setOnClickListener(this);
+    btnStop.setOnClickListener(this);
+    mRelativeLayout = findViewById(R.id.main);
+    mVideoView = new VideoSurfaceView(this, mCameraId);
+    mRelativeLayout.addView(mVideoView);
 
-    TextView send = findViewById(R.id.send_textView);
-    send.append(message + '\n');
-    sendCmd();
   }
 
-  private void sendCmd() {
-    try {
-      mSocket = new DatagramSocket();
-      myAddress = InetAddress.getByName("192.168.4.210");
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-        while (!isConnect) {
-          byte[] data = s.getBytes();
-          DatagramPacket packet = new DatagramPacket(data, data.length, myAddress, 9000);
-          try {
-            mSocket.send(packet);
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
 
+  @Override
+  public void onClick(View v) {
+    switch (v.getId()) {
+      case R.id.btn_start:
+        if (mEditText.getText().toString().isEmpty()) {
+          Toast.makeText(this, "please input address", Toast.LENGTH_SHORT).show();
+        } else {
+          mVideoView.initSocket(mEditText.getText().toString());
+          Log.d(TAG, "click start btn");
+          mEditText.setVisibility(View.GONE);
+          mVideoView.startRecod();
+          isStart = true;
         }
-      }
-    }).start();
+        break;
+      case R.id.btn_stop:
+        mVideoView.stopRecord();
+        break;
+
+    }
   }
+
+
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    if (isStart) {
+      mVideoView.stopRecord();
+    }
+    mVideoView.closeVideo();
+  }
+
 }

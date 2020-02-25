@@ -28,13 +28,14 @@ public class PcmUdpUtil {
   private DatagramSocket client;
   private DatagramPacket receivePacket;
   private OnUDPReceiveCallbackBlock udpReceiveCallback;
-
+ String path = FileUtil.getSDPath()+"/test.pcm";
   //    构造函数私有化
   private PcmUdpUtil() {
     super();
     int cpuNumbers = Runtime.getRuntime().availableProcessors();
     // 根据CPU数目初始化线程池
     mThreadPool = Executors.newFixedThreadPool(cpuNumbers * POOL_SIZE);
+    FileUtil.createFile(path);
   }
 
   //    提供一个全局的静态方法
@@ -84,9 +85,10 @@ public class PcmUdpUtil {
         Log.e(TAG, "无法接收UDP数据或者接收到的UDP数据为空");
         continue;
       }
+        FileUtil.save(receivePacket.getData(),0,receivePacket.getData().length,path,true);
       AudioTrackManager.getInstance().startPlay(receivePacket.getData());
       udpReceiveCallback.OnParserComplete(receivePacket.getData());
-      //Log.d(TAG,  " from " + receivePacket.getAddress().getHostAddress()+" length:"+receivePacket.getData().length);
+      Log.d(TAG,  " from " + receivePacket.getAddress().getHostAddress()+" length:"+receivePacket.getData().length);
       //            每次接收完UDP数据后，重置长度。否则可能会导致下次收到数据包被截断。
       if (receivePacket != null) {
         receivePacket.setLength(BUFFER_LENGTH);

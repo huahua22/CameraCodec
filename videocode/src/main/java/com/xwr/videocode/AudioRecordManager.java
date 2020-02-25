@@ -31,7 +31,8 @@ public class AudioRecordManager {
     bufferSize = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat);
     bufferSize = bufferSize > 320 ? 320 : bufferSize;//20ms
     Log.d(TAG, "bufferSize:" + bufferSize);
-    audioRecord = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, sampleRateInHz, channelConfig, audioFormat, bufferSize);
+    //摄像头旁边的麦克风
+    audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleRateInHz, channelConfig, audioFormat, bufferSize);
   }
 
   public static AudioRecordManager getInstance() {

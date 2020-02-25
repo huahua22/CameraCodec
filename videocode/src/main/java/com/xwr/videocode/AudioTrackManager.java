@@ -3,7 +3,6 @@ package com.xwr.videocode;
 import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
-import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.util.Log;
 
@@ -21,7 +20,7 @@ public class AudioTrackManager {
 
   int sampleRateInHz = 8000;//采样率
 
-  int channelConfig = AudioFormat.CHANNEL_OUT_MONO; //单声道
+  int channelConfig = AudioFormat.CHANNEL_CONFIGURATION_MONO; //单声道
   //int channelConfig = AudioFormat.CHANNEL_IN_MONO;
   int audioFormat = AudioFormat.ENCODING_PCM_16BIT; //量化位数
 
@@ -46,7 +45,7 @@ public class AudioTrackManager {
 
   public void startPlay(byte[] data) {
     if (mAudioTrack == null) {
-      mAudioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRateInHz, channelConfig, audioFormat, bufferSize, AudioTrack.MODE_STREAM);
+      mAudioTrack = new AudioTrack(AudioManager.STREAM_VOICE_CALL, sampleRateInHz, channelConfig, audioFormat, bufferSize, AudioTrack.MODE_STREAM);
       mAudioTrack.play();//启动音频设备
     }
     //播放时，状态校验
@@ -54,12 +53,13 @@ public class AudioTrackManager {
       Log.e(TAG, "不能播放，当前播放器未处于初始化状态..");
       return;
     }
-    mAudioTrack.write(data, 0, data.length);
+    int result = mAudioTrack.write(data, 0, data.length);
+    Log.d(TAG,"write:"+result);
   }
 
   public void stopPlay() {
     if (mAudioTrack != null) {
-      if (mAudioTrack.getState() == AudioRecord.STATE_INITIALIZED) {//初始化成功
+      if (mAudioTrack.getState() == AudioTrack.STATE_INITIALIZED) {//初始化成功
         mAudioTrack.stop();//停止播放
       }
       if (mAudioTrack != null) {

@@ -18,7 +18,7 @@
 		android:layout_height="wrap_content"
 		android:textColor="#ffffff"
 		android:layout_alignParentTop="true"
-		android:text="192.168.4.210"
+		android:text="192.168.0.6"
 		/>
 	<TextView
 		android:id="@+id/tvTip"
@@ -35,15 +35,14 @@
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
 		android:layout_alignParentBottom="true"
-		android:layout_marginBottom="10dp"
+		android:layout_marginBottom="20dp"
 		android:gravity="center_horizontal">
 
 		<Button
 			android:id="@+id/btn_start"
 			android:layout_width="wrap_content"
-			android:visibility="gone"
 			android:layout_height="wrap_content"
-			android:text="开始"/>
+			android:text="视频"/>
 		<Button
 			android:id="@+id/btn_call"
 			android:layout_width="wrap_content"

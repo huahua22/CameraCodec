@@ -1,14 +1,10 @@
 package com.xwr.cameracodec;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
-import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -41,10 +37,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
   private DatagramSocket mSocket = null;
   private boolean isStart;
   DatagramSocket socket = null;
+  DatagramSocket receiveSocket = null;
   private DatagramPacket receivePacket;
   private static final int BUFFER_LENGTH = 320;
   private Thread cmdThread;
+  private Thread sendThread;
   private boolean isThreadRunning = false;
+
   @SuppressLint("HandlerLeak")
   private Handler mHandler = new Handler() {
     @Override
@@ -69,7 +68,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
-    requestPermission();
+    mRelativeLayout = findViewById(R.id.main);
+    mVideoView = new VideoSurfaceView(this, mCameraId);
+    mRelativeLayout.addView(mVideoView);
     btnStart = (Button) findViewById(R.id.btn_start);
     btnStop = findViewById(R.id.btn_stop);
     btnCall = findViewById(R.id.btn_call);
@@ -78,9 +79,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     btnStart.setOnClickListener(this);
     btnStop.setOnClickListener(this);
     btnCall.setOnClickListener(this);
-    mRelativeLayout = findViewById(R.id.main);
-    mVideoView = new VideoSurfaceView(this, mCameraId);
-    mRelativeLayout.addView(mVideoView);
     startSocket();
   }
 
@@ -89,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
   public void onClick(View v) {
     switch (v.getId()) {
       case R.id.btn_start:
+        tvTip.setVisibility(View.GONE);
         if (mEditText.getText().toString().isEmpty()) {
           Toast.makeText(this, "please input address", Toast.LENGTH_SHORT).show();
         } else {
@@ -102,6 +101,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         break;
       case R.id.btn_stop:
         mVideoView.stopRecord();
+        isThreadRunning = false;
+        if(sendThread!=null){
+          sendThread.interrupt();
+        }
+        tvTip.setVisibility(View.GONE);
         btnStart.setClickable(true);
         btnCall.setClickable(true);
         break;
@@ -146,16 +150,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
           return;
         }
       }
+      Log.d(TAG,"rec message1");
       if (receivePacket == null || receivePacket.getLength() == 0) {
         Log.e(TAG, "无法接收UDP数据或者接收到的UDP数据为空");
         continue;
       }
       Log.d(TAG, " from " + receivePacket.getAddress().getHostAddress() + " length:" + receivePacket.getData().length);
       String recvData = new String(receivePacket.getData());
-      Log.d(TAG, "rec data:" + recvData);
       if (recvData.indexOf("connect") != -1) {
-        Log.d(TAG, "请求连接");
-        // mHandler.sendMessage()
+        String message = "success";
+        byte[] info = message.getBytes();
+        DatagramPacket sendPacket = null;// 创建发送类型的数据报：  
+        try {
+          sendPacket = new DatagramPacket(info, info.length, InetAddress.getByName(receivePacket.getAddress().getHostAddress()), 9000);
+          socket.send(sendPacket);
+        } catch (UnknownHostException e) {
+          e.printStackTrace();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
       }
       if (recvData != null && recvData.length() > 0) {
         Message msg = new Message();
@@ -171,6 +184,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
   }
 
   private void startSocketThread() {
+    isThreadRunning = true;
     cmdThread = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -178,7 +192,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         receiveMessage();
       }
     });
-    isThreadRunning = true;
     cmdThread.start();
   }
 
@@ -186,41 +199,35 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     if (socket == null) {
       startSocket();
     }
-    new Thread() {
-      @Override
-      public void run() {
-        super.run();
-        String message = "connect";
-        byte[] configInfo = message.getBytes();
-        InetAddress ip = null; //即目的IP
+  sendThread =  new Thread() {
+    @Override
+    public void run() {
+      super.run();
+      String message = "connect";
+      byte[] configInfo = message.getBytes();
+      InetAddress ip = null; //即目的IP
+      try {
+        ip = InetAddress.getByName(mEditText.getText().toString());
+      } catch (UnknownHostException e) {
+        e.printStackTrace();
+      }
+      while (isThreadRunning) {
+        DatagramPacket sendPacket = new DatagramPacket(configInfo, configInfo.length, ip, 9000);// 创建发送类型的数据报：  
         try {
-          ip = InetAddress.getByName(mEditText.getText().toString());
-        } catch (UnknownHostException e) {
+          socket.send(sendPacket);
+        } catch (IOException e) {
           e.printStackTrace();
         }
-        while (isThreadRunning) {
-          DatagramPacket sendPacket = new DatagramPacket(configInfo, configInfo.length, ip, 9000);// 创建发送类型的数据报：  
-          try {
-            socket.send(sendPacket);
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
-        }
-        Log.d(TAG, "stop thread");
-
       }
-    }.start();
-  }
+      Log.d(TAG, "stop thread");
 
-
-  void requestPermission() {
-    final int REQUEST_CODE = 1;
-    if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-      ActivityCompat.requestPermissions(this, new String[]{
-          Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE},
-        REQUEST_CODE);
     }
+  };
+    sendThread.start();
+
   }
+
+
 
   @Override
   protected void onDestroy() {
@@ -230,6 +237,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
     mVideoView.closeVideo();
     mHandler.removeCallbacks(cmdThread);
+    mHandler.removeCallbacks(sendThread);
   }
 
 
